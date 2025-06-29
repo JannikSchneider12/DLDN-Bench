@@ -1,0 +1,154 @@
+import argparse
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend for CLI
+import matplotlib.pyplot as plt
+import pandas as pd
+from tqdm import tqdm
+from sklearn.metrics import auc
+
+from constants import aa_dict, tool_name_plot_name_dict
+from utils import calculate_peptide_precision_coverage, calculate_aa_precision_coverage
+
+def plot_precision_coverage_curves(result_df, tool_name_dict, benchmark_dataset_name=None, save_plot_path=None, save_tables_path=None):
+
+    """
+    Generate precision-coverage curves for peptide sequencing tools.
+    
+    Args:
+        result_df: DataFrame with ground truth and predictions
+        tool_name_dict: Dictionary mapping tool keys to display names
+        benchmark_dataset_name: Name for output files
+        save_plot_path: Directory to save plots (required for CLI)
+        save_tables_path: Directory to save CSV tables
+    
+    Returns:
+        dict: Summary statistics including AUC scores
+    """
+  
+    # drop rows with NaN predictions that can occur in InstaNovo+
+  
+    if 'instanovoplus' in tool_name_dict.keys():
+         
+        result_df = result_df[result_df["instanovoplus_seq"].notna() & (result_df["instanovoplus_seq"] != "")]
+
+
+    # To store combined curves in overall DataFrames
+    peptide_df = pd.DataFrame()
+    aa_df = pd.DataFrame()
+
+    # Initialize lists for plotting and storing scores
+    all_peptide_coverages = []
+    all_peptide_precisions = []
+    all_peptide_scores = []
+    all_aa_coverages = []
+    all_aa_precisions = []
+    all_aa_scores = []
+    peptide_auc_scores = []
+    aa_auc_scores = []
+
+  
+
+    for tool_name in tqdm(tool_name_dict.keys(), desc="Processing tools"):
+        
+        tool_df = result_df[['groundtruth_seq', f'{tool_name}_seq', f'{tool_name}_score']]
+        
+        # Calculate peptide precision, coverage, and scores
+        peptide_coverage, peptide_precision, peptide_scores = calculate_peptide_precision_coverage(tool_df, aa_dict, tool_name)
+        all_peptide_coverages.append(peptide_coverage)
+        all_peptide_precisions.append(peptide_precision)
+        all_peptide_scores.append(peptide_scores)
+        peptide_auc_score = auc(peptide_coverage, peptide_precision)
+        peptide_auc_scores.append(peptide_auc_score)
+
+        # Calculate AA precision, coverage, and scores
+        aa_coverage, aa_precision, aa_scores = calculate_aa_precision_coverage(tool_df, aa_dict, tool_name)
+        all_aa_coverages.append(aa_coverage)
+        all_aa_precisions.append(aa_precision)
+        all_aa_scores.append(aa_scores)
+        aa_auc_score = auc(aa_coverage, aa_precision)
+        aa_auc_scores.append(aa_auc_score)
+
+        # Add these arrays to the overall peptide_df. Each array is wrapped in a pd.Series.
+        # pd.Series automatically handles varying lengths by filling missing entries with NaN.
+        peptide_df[f"{tool_name}_peptide_precision"] = pd.Series(peptide_precision)
+        peptide_df[f"{tool_name}_peptide_coverage"] = pd.Series(peptide_coverage)
+
+        aa_df[f"{tool_name}_aa_precision"] = pd.Series(aa_precision)
+        aa_df[f"{tool_name}_aa_coverage"] = pd.Series(aa_coverage)
+
+    print(f'Based on {len(result_df)} peptide-spectrum matches')
+
+    # Plot peptide precision vs. coverage with AUC scores
+    plt.figure(figsize=(10, 6))
+    for cov, prec, sc, tool_name, auc_score in sorted(zip(all_peptide_coverages, all_peptide_precisions, all_peptide_scores, tool_name_dict.values(), peptide_auc_scores), key=lambda x: x[4], reverse=True):
+            plt.plot(cov, prec, label=f"{tool_name} (AUC = {auc_score:.3f})")
+
+    plt.xlabel("Coverage")
+    plt.ylabel("Precision")
+    plt.title("Peptide Precision vs. Coverage")
+    plt.legend(loc="lower left")
+    plt.grid(True)
+
+    # Save peptide plot if save_plot_path is provided
+    if save_plot_path is not None:
+            peptide_plot_path = f"{save_plot_path}/{benchmark_dataset_name}_peptide_precision_coverage.png"
+            plt.savefig(peptide_plot_path, dpi=300, bbox_inches='tight')
+            print(f"Peptide plot saved to {peptide_plot_path}")
+
+    plt.close()  # Close figure to free memory
+
+    # Plot aa precision vs. coverage with AUC scores
+    plt.figure(figsize=(10, 6))
+    for cov, prec, sc, tool_name, auc_score in sorted(zip(all_aa_coverages, all_aa_precisions, all_aa_scores, tool_name_dict.values(), aa_auc_scores), key=lambda x: x[4], reverse=True):
+            plt.plot(cov, prec, label=f"{tool_name} (AUC = {auc_score:.3f})")
+            
+
+    plt.xlabel("Coverage")
+    plt.ylabel("Precision")
+    plt.title("AA Precision vs. Coverage")
+    plt.legend(loc="lower left")
+    plt.grid(True)
+
+    # Save AA plot if save_plot_path is provided
+    if save_plot_path is not None:
+            aa_plot_path = f"{save_plot_path}/{benchmark_dataset_name}_aminoacid_precision_coverage.png"
+            plt.savefig(aa_plot_path, dpi=300, bbox_inches='tight')
+            print(f"AA plot saved to {aa_plot_path}")
+
+    plt.close()  # Close figure to free memory
+    
+    if save_tables_path is not None:
+
+        # Save the overall DataFrames to CSV files.
+
+        peptide_df.to_csv(f'{save_tables_path}/{benchmark_dataset_name}_peptide_precision_coverage.csv', index=False)
+        aa_df.to_csv(f'{save_tables_path}/{benchmark_dataset_name}_aminoacid_precision_coverage.csv', index=False)
+
+        print(f'Table files saved: {save_tables_path}/{benchmark_dataset_name}_peptide_precision_coverage.csv and{save_tables_path}/{benchmark_dataset_name}_aminoacid_precision_coverage.csv')
+        
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Analyze precision and coverage of peptide sequencing tools")
+    
+    parser.add_argument('-i', '--input', required=True, 
+                       help='Input CSV file with results')
+    parser.add_argument('-o', '--output', required=True,
+                       help='Output directory for plots')
+    parser.add_argument('-d', '--dataset', required=True,
+                       help='Dataset name for output files')
+    parser.add_argument('--tables',
+                       help='Directory to save CSV tables')
+    
+    args = parser.parse_args()
+    
+    # Load data
+    result_df = pd.read_csv(args.input)
+    
+    # Run analysis
+    plot_precision_coverage_curves(
+        result_df=result_df,
+        tool_name_dict=tool_name_plot_name_dict,
+        benchmark_dataset_name=args.dataset,
+        save_plot_path=args.output,
+        save_tables_path=args.tables
+    )
