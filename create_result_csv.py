@@ -12,7 +12,9 @@ def create_result_csv(ground_truth_file_path,
                       pi_helixnovo_result_file_path,
                       contranovo_result_file_path_list,
                       instanovo_result_file_path,
-                      save_path=None
+                      save_path=None,
+                      additional_result_file_path=None,
+                      additional_result_name=None,
                     ):
     
 
@@ -211,6 +213,38 @@ def create_result_csv(ground_truth_file_path,
 
     merged_df = merged_df.merge(instanovoplus_df, how='inner', on='pos_index')
 
+    ####################### additional result file #######################
+
+    if additional_result_file_path and additional_result_name:
+        
+        print(f'parse {additional_result_name} prediction file')
+
+        additional_result_df = pd.read_csv(additional_result_file_path)
+
+        additional_result_df['pos_index'] = range(len(additional_result_df))
+
+        # Use the same format as InstaNovo - expecting 'predictions' and 'probabilities' columns
+        if 'predictions' in additional_result_df.columns and 'probabilities' in additional_result_df.columns:
+            additional_result_df.rename(columns={'predictions': f'{additional_result_name}_seq', 
+                                               'probabilities': f'{additional_result_name}_score'}, inplace=True)
+        else:
+            # Alternative: look for common column names and rename them
+            # This assumes the file has 'sequence' and 'score' columns or similar
+            if 'sequence' in additional_result_df.columns:
+                additional_result_df.rename(columns={'sequence': f'{additional_result_name}_seq'}, inplace=True)
+            if 'score' in additional_result_df.columns:
+                additional_result_df.rename(columns={'score': f'{additional_result_name}_score'}, inplace=True)
+
+        # Filter out unspecified mods using the same function as InstaNovo
+        additional_result_df = instanovo_filter_out_unspecified_mods(additional_result_df, unimod_dict, additional_result_name)
+
+        # extract relevant cols and merge
+        additional_result_df = additional_result_df[['pos_index', f'{additional_result_name}_seq', f'{additional_result_name}_score']]
+
+        merged_df = merged_df.merge(additional_result_df, how='inner', on='pos_index')
+
+    #######################################################################################################################################
+
     merged_df.to_csv(save_path)
 
     print(f'result csv file saved on {save_path}')
@@ -246,6 +280,12 @@ if __name__ == "__main__":
 
     parser.add_argument('-save_path', required=False, default='benchmark_predictions.csv',
                         help='Path to save the csv file')
+    
+    parser.add_argument('-additional_file', '--additional_result_file_path', required=False, 
+                        help='Path to additional result file (InstaNovo format)')
+
+    parser.add_argument('-additional_name', '--additional_result_name', required=False, 
+                        help='Name for the additional result file (used as column prefix)')
 
     args = parser.parse_args()
 
@@ -257,4 +297,6 @@ if __name__ == "__main__":
                         pi_helixnovo_result_file_path=args.pi_helixnovo_pred_file_path,
                         contranovo_result_file_path_list=args.contranovo_pred_file_path,
                         instanovo_result_file_path=args.instanovo_pred_file_path,
-                        save_path=args.save_path)
+                        save_path=args.save_path,
+                        additional_result_file_path=args.additional_result_file_path,
+                        additional_result_name=args.additional_result_name)
