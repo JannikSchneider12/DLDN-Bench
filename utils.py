@@ -16,7 +16,7 @@ import xml.etree.ElementTree as ET
 from sklearn.metrics import auc
 import matplotlib.pyplot as plt
 
-from constants import aa_match_batch
+from calculate_criteria import aa_match_batch
 
 def modify_de_novo_result_with_filter_out_df(result_df, mod_dict):
 
@@ -278,3 +278,4 @@ def calculate_aa_precision_coverage(psm_sequences, aa_dict, tool_name):
     scores = np.array(scores_repeated[:len(aa_matches)])
 
     return coverage, precision, scores
+

@@ -1,4 +1,5 @@
 import pandas as pd
+import argparse
 
 from constants import modification_dict, novor_modification_dict, pepnovoplus_result_mod_dict, unimod_dict
 from utils import parse_benchmark_mgf, parse_mgfsplus_mods, read_pepnovo_predictions, modify_de_novo_result_with_filter_out_df, parse_file_to_dataframe, instanovo_filter_out_unspecified_mods
@@ -17,9 +18,13 @@ def create_result_csv(ground_truth_file_path,
 
     ####################### groundtruth_seqs #######################
 
+    print('parse groundtruth MGF')
+
     df = parse_benchmark_mgf(ground_truth_file_path)
 
     ####################### msgfplus #######################
+
+    print('parse MSGF+ prediction file')
 
     msgfplus_result_df = pd.read_parquet(msgfplus_result_file_path)
 
@@ -47,6 +52,8 @@ def create_result_csv(ground_truth_file_path,
 
     ####################### pepnovoplus #######################
 
+    print('parse PepNovo+ prediction file')
+
     pepnovoplus_df = read_pepnovo_predictions(pepnovoplus_result_file_path)     
 
     for old, new in pepnovoplus_result_mod_dict.items():
@@ -64,6 +71,8 @@ def create_result_csv(ground_truth_file_path,
     merged_df = merged_df.merge(pepnovoplus_df, how='inner', on='title')
 
     ####################### novor #######################
+
+    print('parse Novor prediction file')
     
     # Open the file and find where the header starts
     header_line = None
@@ -107,6 +116,8 @@ def create_result_csv(ground_truth_file_path,
 
     ####################### casanovo #######################
 
+    print('parse CasaNovo prediction file')
+
     with open(casanovo_result_file_path) as f_in:
         for skiprows, line in enumerate(f_in):
             if line.startswith("PSH"):
@@ -126,6 +137,8 @@ def create_result_csv(ground_truth_file_path,
 
     ####################### pi-helixnovo #######################
 
+    print('parse Pi-HelixNovo prediction file')
+
     pi_helixnovo_result_df = pd.read_csv(pi_helixnovo_result_file_path, sep='\t', names=['title','sequence', 'p'] )
 
     pi_helixnovo_result_df['pos_index'] = range(len(pi_helixnovo_result_df))
@@ -141,6 +154,8 @@ def create_result_csv(ground_truth_file_path,
     merged_df = merged_df.merge(pi_helixnovo_result_df, how='inner', on='pos_index')
 
     ####################### contranovo #######################
+
+    print('parse ContraNovo prediction file')
 
     contranovo_result_df = pd.DataFrame()
 
@@ -173,6 +188,8 @@ def create_result_csv(ground_truth_file_path,
 
     ####################### instanovo & instanovoplus #######################
 
+    print('parse InstaNovo prediction file')
+
     instanovo_result_df = pd.read_csv(instanovo_result_file_path)
 
     instanovo_result_df['pos_index'] = range(len(instanovo_result_df))
@@ -197,3 +214,47 @@ def create_result_csv(ground_truth_file_path,
     merged_df.to_csv(save_path)
 
     print(f'result csv file saved on {save_path}')
+
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description="Align prediction files from different tools")
+
+    parser.add_argument('-gt', '--ground_truth_file_path', required=True, 
+                        help='Path to benchmark MGF with annotated sequences')
+
+    parser.add_argument('-msgfplus', '--msgfplus_pred_file_path', required=True, 
+                        help='Path to MSGF+ prediction file')
+
+    parser.add_argument('-pepnovoplus', '--pepnovoplus_pred_file_path', required=True, 
+                        help='Path to PepNovo+ prediction file')
+
+    parser.add_argument('-novor', '--novor_pred_file_path', required=True, 
+                        help='Path to Novor prediction file')
+
+    parser.add_argument('-casanovo', '--casanovo_pred_file_path', required=True, 
+                        help='Path to CasaNovo prediction file')
+
+    parser.add_argument('-pi_helixnovo', '--pi_helixnovo_pred_file_path', required=True, 
+                        help='Path to π-HelixNovo prediction file')
+
+    parser.add_argument('-contranovo', '--contranovo_pred_file_path', required=True, 
+                        nargs='+', help='Path(s) to ContraNovo prediction file(s)')
+
+    parser.add_argument('-instanovo', '--instanovo_pred_file_path', required=True, 
+                        help='Path to InstaNovo prediction file')
+
+    parser.add_argument('-save_path', required=False, default='benchmark_predictions.csv',
+                        help='Path to save the csv file')
+
+    args = parser.parse_args()
+
+    create_result_csv(ground_truth_file_path=args.ground_truth_file_path,
+                        msgfplus_result_file_path=args.msgfplus_pred_file_path,
+                        pepnovoplus_result_file_path=args.pepnovoplus_pred_file_path,
+                        novor_result_file_path=args.novor_pred_file_path,
+                        casanovo_result_file_path=args.casanovo_pred_file_path,
+                        pi_helixnovo_result_file_path=args.pi_helixnovo_pred_file_path,
+                        contranovo_result_file_path_list=args.contranovo_pred_file_path,
+                        instanovo_result_file_path=args.instanovo_pred_file_path,
+                        save_path=args.save_path)
