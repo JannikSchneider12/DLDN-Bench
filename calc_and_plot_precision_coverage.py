@@ -9,6 +9,20 @@ from sklearn.metrics import auc
 from constants import aa_dict, tool_name_plot_name_dict
 from utils import calculate_peptide_precision_coverage, calculate_aa_precision_coverage
 
+def get_tool_names_from_columns(df):
+    """Extract tool names from columns that follow {toolname}_seq and {toolname}_score pattern"""
+    tool_names = set()
+    
+    for col in df.columns:
+        # Look for columns ending with '_seq'
+        if col.endswith('_seq') and col != 'groundtruth_seq':
+            tool_name = col[:-4]  # Remove '_seq' suffix
+            # Check if corresponding '_score' column exists
+            if f'{tool_name}_score' in df.columns:
+                tool_names.add(tool_name)
+    
+    return list(tool_names)
+
 def plot_precision_coverage_curves(result_df, tool_name_dict, benchmark_dataset_name=None, save_plot_path=None, save_tables_path=None):
 
     """
@@ -49,6 +63,8 @@ def plot_precision_coverage_curves(result_df, tool_name_dict, benchmark_dataset_
   
 
     for tool_name in tqdm(tool_name_dict.keys(), desc="Processing tools"):
+
+        print(f'processing: {tool_name}')
         
         tool_df = result_df[['groundtruth_seq', f'{tool_name}_seq', f'{tool_name}_score']]
         
@@ -143,6 +159,23 @@ if __name__ == "__main__":
     
     # Load data
     result_df = pd.read_csv(args.input)
+    
+    # Get all available tools dynamically
+    available_tools = get_tool_names_from_columns(result_df)
+
+    # Filter out instanovoplus because not recent version was available
+    excluded_tools = ['instanovoplus']  # Add any other tools you want to exclude
+    available_tools = [tool for tool in available_tools if tool not in excluded_tools]
+    print(f"Found tools: {available_tools}")
+
+    # Extend the dictionary with newly discovered tools
+    for tool in available_tools:
+        if tool not in tool_name_plot_name_dict:
+            # Use the tool name as the plot name (or customize as needed)
+            tool_name_plot_name_dict[tool] = tool
+            print(f"Added new tool: {tool}")
+
+    print(f"Final tool dictionary: {tool_name_plot_name_dict}")
     
     # Run analysis
     plot_precision_coverage_curves(
