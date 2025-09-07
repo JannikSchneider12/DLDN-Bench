@@ -224,9 +224,9 @@ def create_result_csv(ground_truth_file_path,
         additional_result_df['pos_index'] = range(len(additional_result_df))
 
         # Use the same format as InstaNovo - expecting 'predictions' and 'probabilities' columns
-        if 'predictions' in additional_result_df.columns and 'probabilities' in additional_result_df.columns:
+        if 'predictions' in additional_result_df.columns and 'scores' in additional_result_df.columns:
             additional_result_df.rename(columns={'predictions': f'{additional_result_name}_seq', 
-                                               'probabilities': f'{additional_result_name}_score'}, inplace=True)
+                                               'scores': f'{additional_result_name}_score'}, inplace=True)
         else:
             # Alternative: look for common column names and rename them
             # This assumes the file has 'sequence' and 'score' columns or similar
