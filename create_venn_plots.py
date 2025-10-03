@@ -15,9 +15,11 @@ Usage:
     python venn_plot_generator.py <csv_file> --title "Custom Title"
     python venn_plot_generator.py <csv_file> --dpi 300
     python venn_plot_generator.py <csv_file> --figsize 12 10
+    python venn_plot_generator.py <csv_file> --exact  # Use exact string matching instead of mass-based
 """
 
 import argparse
+import re
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib_venn import venn2, venn3, venn2_circles, venn3_circles
@@ -26,6 +28,9 @@ from pathlib import Path
 import sys
 import warnings
 warnings.filterwarnings('ignore')
+
+import calculate_criteria
+from constants import aa_dict
 
 # Try to import pyvenn for 4-6 way diagrams
 try:
@@ -105,9 +110,10 @@ def read_predictions(csv_file, selected_tools=None):
     return df, tool_columns
 
 
-def get_correct_predictions_sets(df, tool_columns):
+def get_correct_predictions_sets(df, tool_columns, use_exact=False, aa_dict=None):
     """
     Create sets of indices where each tool made correct predictions.
+    Can use either exact string matching or mass-based matching.
     
     Parameters
     ----------
@@ -115,15 +121,25 @@ def get_correct_predictions_sets(df, tool_columns):
         The dataframe with predictions
     tool_columns : list
         List of tool names
-    
+    use_exact : bool
+        If True, use exact string matching. If False, use mass-based matching
+    aa_dict : Dict[str, float] or None
+        Mapping of amino acid tokens to their mass values. If None, uses default.
+
     Returns
     -------
     sets_dict : dict
         Dictionary mapping tool names to sets of correct prediction indices
     """
     sets_dict = {}
+
+    if use_exact:
+        print("Calculating correct predictions (exact string matching)")
+
+    else:
+        print("Calculating correct predictions (mass-based matching)")
     
-    print("\nCalculating correct predictions:")
+    
     for tool in tool_columns:
         tool_col = f"{tool}_seq"
         # Handle missing values by replacing them with empty strings
@@ -133,6 +149,28 @@ def get_correct_predictions_sets(df, tool_columns):
         # Find indices where predictions match ground truth
         correct_mask = tool_predictions == groundtruth
         correct_indices = set(df.index[correct_mask].tolist())
+
+        if use_exact:
+            # Exact string matching
+            for idx, (pred, truth) in enumerate(zip(tool_predictions, groundtruth)):
+                if pred and truth and pred == truth:
+                    correct_indices.add(idx)
+
+        else:
+            # Mass-based matching
+            for idx, (pred, truth) in enumerate(zip(tool_predictions, groundtruth)):
+                if pred and truth:  # Skip empty sequences
+                    # Tokenize peptides
+                    pred_tokens = re.split(r'(?<=.)(?=[A-Z])', pred)
+                    truth_tokens = re.split(r'(?<=.)(?=[A-Z])', truth)
+                    
+                    # Use aa_match to determine if they match
+                    aa_matches, pep_match = calculate_criteria.aa_match(
+                        pred_tokens, truth_tokens, aa_dict
+                    )
+                    
+                    if pep_match:  # Full peptide match based on mass
+                        correct_indices.add(idx)
         
         sets_dict[tool] = correct_indices
         
@@ -276,24 +314,25 @@ def print_intersection_statistics(sets_dict):
 
 
 def main():
+
     parser = argparse.ArgumentParser(
         description='Generate Venn diagrams from peptide prediction results (max 6 tools)',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Examples:
-  # Use all tools (aborts if more than 6)
-  python venn_plot_generator.py my_dataset_benchmark_predictions.csv
-  
-  # Select specific tools
-  python venn_plot_generator.py data.csv --tools tool1 tool2 tool3
-  
-  # Select up to 6 tools from a file with more tools
-  python venn_plot_generator.py data.csv --tools casanovo novor pointnovo pepnet directms specgpt
-  
-  # Custom output and styling
-  python venn_plot_generator.py data.csv --output results/venn.png --dpi 300
-  python venn_plot_generator.py data.csv --title "Tool Comparison" --figsize 14 12
-        """
+    Examples:
+    # Use all tools (aborts if more than 6)
+    python venn_plot_generator.py my_dataset_benchmark_predictions.csv
+    
+    # Select specific tools
+    python venn_plot_generator.py data.csv --tools tool1 tool2 tool3
+    
+    # Select up to 6 tools from a file with more tools
+    python venn_plot_generator.py data.csv --tools casanovo novor pointnovo pepnet directms specgpt
+    
+    # Custom output and styling
+    python venn_plot_generator.py data.csv --output results/venn.png --dpi 300
+    python venn_plot_generator.py data.csv --title "Tool Comparison" --figsize 14 12
+            """
     )
     
     parser.add_argument('csv_file', help='Path to the CSV file containing predictions')
@@ -304,6 +343,8 @@ Examples:
     parser.add_argument('--dpi', type=int, default=150, help='DPI for the output image (default: 150)')
     parser.add_argument('--figsize', nargs=2, type=float, default=[12, 10], 
                        help='Figure size as width height (default: 12 10)')
+    parser.add_argument('--exact', action='store_true',
+                       help='Use exact string matching instead of mass-based matching (default: mass-based)')
     
     args = parser.parse_args()
     
@@ -320,7 +361,11 @@ Examples:
     else:
         # Auto-generate output filename
         dataset_name = input_path.stem.replace('_benchmark_predictions', '')
-        output_file = input_path.parent / f"{dataset_name}_predictions_venn_plot.png"
+        modus = 'string_match' if args.exact else 'mass_match'
+        output_file = input_path.parent / f"{dataset_name}_predictions_venn_plot_{modus}.png"
+
+
+
     
     # Determine title
     if args.title:
@@ -336,7 +381,7 @@ Examples:
     df, tool_columns = read_predictions(args.csv_file, args.tools)
     
     # Get correct predictions for each tool
-    sets_dict = get_correct_predictions_sets(df, tool_columns)
+    sets_dict = get_correct_predictions_sets(df, tool_columns, use_exact=args.exact, aa_dict=aa_dict)
     
     # Print statistics
     print_intersection_statistics(sets_dict)

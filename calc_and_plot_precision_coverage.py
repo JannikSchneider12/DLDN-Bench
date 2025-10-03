@@ -95,15 +95,16 @@ def plot_precision_coverage_curves(result_df, tool_name_dict, benchmark_dataset_
     print(f'Based on {len(result_df)} peptide-spectrum matches')
 
     # Plot peptide precision vs. coverage with AUC scores
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(12, 6))
     for cov, prec, sc, tool_name, auc_score in sorted(zip(all_peptide_coverages, all_peptide_precisions, all_peptide_scores, tool_name_dict.values(), peptide_auc_scores), key=lambda x: x[4], reverse=True):
             plt.plot(cov, prec, label=f"{tool_name} (AUC = {auc_score:.3f})")
 
     plt.xlabel("Coverage")
     plt.ylabel("Precision")
-    plt.title("Peptide Precision vs. Coverage")
-    plt.legend(loc="lower left")
+    plt.title(f"Peptide Precision vs. Coverage (Benchmark Dataset: {benchmark_dataset_name})")
+    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left')  # Place legend outside
     plt.grid(True)
+    plt.tight_layout()  # Adjust layout to fit everything
 
     # Save peptide plot if save_plot_path is provided
     if save_plot_path is not None:
@@ -114,16 +115,17 @@ def plot_precision_coverage_curves(result_df, tool_name_dict, benchmark_dataset_
     plt.close()  # Close figure to free memory
 
     # Plot aa precision vs. coverage with AUC scores
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(12, 6))
     for cov, prec, sc, tool_name, auc_score in sorted(zip(all_aa_coverages, all_aa_precisions, all_aa_scores, tool_name_dict.values(), aa_auc_scores), key=lambda x: x[4], reverse=True):
             plt.plot(cov, prec, label=f"{tool_name} (AUC = {auc_score:.3f})")
             
 
     plt.xlabel("Coverage")
     plt.ylabel("Precision")
-    plt.title("AA Precision vs. Coverage")
-    plt.legend(loc="lower left")
+    plt.title(f"AA Precision vs. Coverage (Benchmark Dataset: {benchmark_dataset_name})")
+    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left')  # Place legend outside
     plt.grid(True)
+    plt.tight_layout()  # Adjust layout to fit everything
 
     # Save AA plot if save_plot_path is provided
     if save_plot_path is not None:
