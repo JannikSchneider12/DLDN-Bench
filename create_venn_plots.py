@@ -39,6 +39,8 @@ try:
 except ImportError:
     PYVENN_AVAILABLE = False
 
+from adjustText import adjust_text
+
 
 def read_predictions(csv_file, selected_tools=None):
     """
@@ -267,9 +269,8 @@ def create_pyvenn_diagram(sets_dict, labels, title, output_file, figsize=(12, 10
     # Set up matplotlib figure with specified size and DPI
     fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
     
-    # Create the Venn diagram
-    # pyvenn.venn expects a dictionary mapping labels to sets
-    venn_diagram = pyvenn.venn(labels_dict, ax=ax, fmt="{size}")
+    # Create the Venn diagram with smaller font size to avoid overlap
+    venn_diagram = pyvenn.venn(labels_dict, ax=ax, fmt="{size}", fontsize=9)
     
     # Add title
     ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
@@ -278,6 +279,7 @@ def create_pyvenn_diagram(sets_dict, labels, title, output_file, figsize=(12, 10
     plt.savefig(output_file, dpi=dpi, bbox_inches='tight')
     print(f"\nVenn diagram saved to: {output_file}")
     plt.close()
+
 
 
 def print_intersection_statistics(sets_dict):
