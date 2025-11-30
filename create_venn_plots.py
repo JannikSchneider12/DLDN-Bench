@@ -185,7 +185,7 @@ def get_correct_predictions_sets(df, tool_columns, use_exact=False, aa_dict=None
     return sets_dict
 
 
-def create_venn2(sets_dict, labels, title, output_file, figsize=(8, 6), dpi=150):
+def create_venn2(sets_dict, labels, title, output_file, figsize=(8, 6), dpi=150, show_numbers=True):
     """
     Create a 2-way Venn diagram.
     """
@@ -203,13 +203,20 @@ def create_venn2(sets_dict, labels, title, output_file, figsize=(8, 6), dpi=150)
     # Style the diagram
     ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
     
-    # Add percentage annotations
-    total = len(set_a.union(set_b)) if set_a.union(set_b) else 1
-    for subset in ['10', '01', '11']:
-        if venn.get_label_by_id(subset):
-            count = int(venn.get_label_by_id(subset).get_text())
-            percentage = count / total * 100
-            venn.get_label_by_id(subset).set_text(f'{count}\n({percentage:.1f}%)')
+    # Handle number display
+    if show_numbers:
+        # Add percentage annotations
+        total = len(set_a.union(set_b)) if set_a.union(set_b) else 1
+        for subset in ['10', '01', '11']:
+            if venn.get_label_by_id(subset):
+                count = int(venn.get_label_by_id(subset).get_text())
+                percentage = count / total * 100
+                venn.get_label_by_id(subset).set_text(f'{count}\n({percentage:.1f}%)')
+    else:
+        # Hide all region labels
+        for subset in ['10', '01', '11']:
+            if venn.get_label_by_id(subset):
+                venn.get_label_by_id(subset).set_text('')
     
     plt.tight_layout()
     plt.savefig(output_file, dpi=dpi, bbox_inches='tight')
@@ -217,7 +224,7 @@ def create_venn2(sets_dict, labels, title, output_file, figsize=(8, 6), dpi=150)
     plt.close()
 
 
-def create_venn3(sets_dict, labels, title, output_file, figsize=(10, 8), dpi=150):
+def create_venn3(sets_dict, labels, title, output_file, figsize=(10, 8), dpi=150, show_numbers=True):
     """
     Create a 3-way Venn diagram.
     """
@@ -235,13 +242,20 @@ def create_venn3(sets_dict, labels, title, output_file, figsize=(10, 8), dpi=150
     # Style the diagram
     ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
     
-    # Add percentage annotations
-    total = len(set_a.union(set_b).union(set_c)) if set_a.union(set_b).union(set_c) else 1
-    for subset in ['100', '010', '001', '110', '101', '011', '111']:
-        if venn.get_label_by_id(subset):
-            count = int(venn.get_label_by_id(subset).get_text())
-            percentage = count / total * 100
-            venn.get_label_by_id(subset).set_text(f'{count}\n({percentage:.1f}%)')
+    # Handle number display
+    if show_numbers:
+        # Add percentage annotations
+        total = len(set_a.union(set_b).union(set_c)) if set_a.union(set_b).union(set_c) else 1
+        for subset in ['100', '010', '001', '110', '101', '011', '111']:
+            if venn.get_label_by_id(subset):
+                count = int(venn.get_label_by_id(subset).get_text())
+                percentage = count / total * 100
+                venn.get_label_by_id(subset).set_text(f'{count}\n({percentage:.1f}%)')
+    else:
+        # Hide all region labels
+        for subset in ['100', '010', '001', '110', '101', '011', '111']:
+            if venn.get_label_by_id(subset):
+                venn.get_label_by_id(subset).set_text('')
     
     plt.tight_layout()
     plt.savefig(output_file, dpi=dpi, bbox_inches='tight')
@@ -249,7 +263,7 @@ def create_venn3(sets_dict, labels, title, output_file, figsize=(10, 8), dpi=150
     plt.close()
 
 
-def create_pyvenn_diagram(sets_dict, labels, title, output_file, figsize=(12, 10), dpi=150):
+def create_pyvenn_diagram(sets_dict, labels, title, output_file, figsize=(12, 10), dpi=150, show_numbers=True):
     """
     Create 4, 5, or 6-way Venn diagrams using pyvenn.
     """
@@ -269,8 +283,27 @@ def create_pyvenn_diagram(sets_dict, labels, title, output_file, figsize=(12, 10
     # Set up matplotlib figure with specified size and DPI
     fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
     
-    # Create the Venn diagram with smaller font size to avoid overlap
-    venn_diagram = pyvenn.venn(labels_dict, ax=ax, fmt="{size}", fontsize=9)
+    # Create the Venn diagram - use empty format string if hiding numbers
+    fmt = "{size}" if show_numbers else ""
+    venn_diagram = pyvenn.venn(labels_dict, ax=ax, fmt=fmt, fontsize=8)
+    
+    # Only apply adjust_text if showing numbers
+    if show_numbers:
+        # Collect all text objects from the venn diagram for adjustment
+        texts = [child for child in ax.get_children() 
+                 if isinstance(child, plt.Text) and child.get_text().isdigit()]
+        
+        # Use adjust_text to prevent overlapping labels
+        if texts:
+            adjust_text(
+                texts,
+                ax=ax,
+                expand_points=(1.5, 1.5),
+                expand_text=(1.2, 1.2),
+                force_points=(0.5, 0.5),
+                force_text=(0.5, 0.5),
+                arrowprops=dict(arrowstyle='-', color='gray', lw=0.5, alpha=0.5)
+            )
     
     # Add title
     ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
@@ -347,6 +380,8 @@ def main():
                        help='Figure size as width height (default: 12 10)')
     parser.add_argument('--exact', action='store_true',
                        help='Use exact string matching instead of mass-based matching (default: mass-based)')
+    parser.add_argument('--no-numbers', action='store_true',
+                       help='Hide the count numbers in the Venn diagram regions')
     
     args = parser.parse_args()
     
@@ -369,12 +404,8 @@ def main():
 
 
     
-    # Determine title
-    if args.title:
-        title = args.title
-    else:
-        dataset_name = input_path.stem.replace('_benchmark_predictions', '')
-        title = f"{dataset_name} - Sequence Prediction Overlap"
+    # Determine title (empty if not provided)
+    title = args.title if args.title else ""
     
     print(f"\nProcessing: {args.csv_file}")
     print(f"Output will be saved to: {output_file}")
@@ -395,13 +426,13 @@ def main():
     
     if n_tools == 2:
         create_venn2(sets_dict, tool_columns, title, output_file, 
-                    figsize=tuple(args.figsize), dpi=args.dpi)
+                    figsize=tuple(args.figsize), dpi=args.dpi, show_numbers=not args.no_numbers)
     elif n_tools == 3:
         create_venn3(sets_dict, tool_columns, title, output_file, 
-                    figsize=tuple(args.figsize), dpi=args.dpi)
+                    figsize=tuple(args.figsize), dpi=args.dpi, show_numbers=not args.no_numbers)
     elif n_tools >= 4 and n_tools <= 6:
         create_pyvenn_diagram(sets_dict, tool_columns, title, output_file,
-                            figsize=tuple(args.figsize), dpi=args.dpi)
+                            figsize=tuple(args.figsize), dpi=args.dpi, show_numbers=not args.no_numbers)
     
     print("\nDone!")
 
