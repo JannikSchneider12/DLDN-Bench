@@ -95,14 +95,17 @@ def plot_precision_coverage_curves(result_df, tool_name_dict, benchmark_dataset_
     print(f'Based on {len(result_df)} peptide-spectrum matches')
 
     # Plot peptide precision vs. coverage with AUC scores
-    plt.figure(figsize=(10, 8))
+    plt.figure(figsize=(10, 6))
     for cov, prec, sc, tool_name, auc_score in sorted(zip(all_peptide_coverages, all_peptide_precisions, all_peptide_scores, tool_name_dict.values(), peptide_auc_scores), key=lambda x: x[4], reverse=True):
-            plt.plot(cov, prec, label=f"{tool_name} (AUC = {auc_score:.3f})")
+            plt.plot(cov, prec, label=f"{tool_name} (AUC = {auc_score:.3f})", linewidth=2.5)
 
-    plt.xlabel("Coverage")
-    plt.ylabel("Precision")
+    plt.xlabel("Coverage", fontsize=14)
+    plt.ylabel("Precision", fontsize=14)
     plt.title(f"Peptide Precision vs. Coverage (Benchmark Dataset: {benchmark_dataset_name})")
-    plt.legend(bbox_to_anchor=(0, 1.15), loc='lower left', ncol=1)  # Place legend outside
+    plt.xlim(0.01, 1.0)  # Start at 0.01 to clip initial artifacts
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', ncol=1, fontsize=11)  # Place legend outside
     plt.grid(True)
     plt.tight_layout()  # Adjust layout to fit everything
 
@@ -115,15 +118,18 @@ def plot_precision_coverage_curves(result_df, tool_name_dict, benchmark_dataset_
     plt.close()  # Close figure to free memory
 
     # Plot aa precision vs. coverage with AUC scores
-    plt.figure(figsize=(10, 8))
+    plt.figure(figsize=(10, 6))
     for cov, prec, sc, tool_name, auc_score in sorted(zip(all_aa_coverages, all_aa_precisions, all_aa_scores, tool_name_dict.values(), aa_auc_scores), key=lambda x: x[4], reverse=True):
-            plt.plot(cov, prec, label=f"{tool_name} (AUC = {auc_score:.3f})")
+            plt.plot(cov, prec, label=f"{tool_name} (AUC = {auc_score:.3f})", linewidth=2.5)
             
 
-    plt.xlabel("Coverage")
-    plt.ylabel("Precision")
+    plt.xlabel("Coverage", fontsize=14)
+    plt.ylabel("Precision", fontsize=14)
     plt.title(f"AA Precision vs. Coverage (Benchmark Dataset: {benchmark_dataset_name})")
-    plt.legend(bbox_to_anchor=(0, 1.15), loc='lower left', ncol=1)  # Place legend outside
+    plt.xlim(0.01, 1.0)  # Start at 0.01 to clip initial artifacts
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', ncol=1, fontsize=11)  # Place legend outside
     plt.grid(True)
     plt.tight_layout()  # Adjust layout to fit everything
 
