@@ -97,7 +97,7 @@ def plot_precision_coverage_curves(result_df, tool_name_dict, benchmark_dataset_
     # Plot peptide precision vs. coverage with AUC scores
     plt.figure(figsize=(10, 6))
     for cov, prec, sc, tool_name, auc_score in sorted(zip(all_peptide_coverages, all_peptide_precisions, all_peptide_scores, tool_name_dict.values(), peptide_auc_scores), key=lambda x: x[4], reverse=True):
-            plt.plot(cov, prec, label=f"{tool_name} (AUC = {auc_score:.3f})", linewidth=2.5)
+            plt.plot(cov, prec, label=f"{tool_name} (AUC = {auc_score:.3f})", linewidth=3.5)
 
     plt.xlabel("Coverage", fontsize=14)
     plt.ylabel("Precision", fontsize=14)
@@ -112,7 +112,7 @@ def plot_precision_coverage_curves(result_df, tool_name_dict, benchmark_dataset_
     # Save peptide plot if save_plot_path is provided
     if save_plot_path is not None:
             peptide_plot_path = f"{save_plot_path}/{benchmark_dataset_name}_peptide_precision_coverage.png"
-            plt.savefig(peptide_plot_path, dpi=300, bbox_inches='tight')
+            plt.savefig(peptide_plot_path, dpi=600, bbox_inches='tight')
             print(f"Peptide plot saved to {peptide_plot_path}")
 
     plt.close()  # Close figure to free memory
@@ -120,7 +120,7 @@ def plot_precision_coverage_curves(result_df, tool_name_dict, benchmark_dataset_
     # Plot aa precision vs. coverage with AUC scores
     plt.figure(figsize=(10, 6))
     for cov, prec, sc, tool_name, auc_score in sorted(zip(all_aa_coverages, all_aa_precisions, all_aa_scores, tool_name_dict.values(), aa_auc_scores), key=lambda x: x[4], reverse=True):
-            plt.plot(cov, prec, label=f"{tool_name} (AUC = {auc_score:.3f})", linewidth=2.5)
+            plt.plot(cov, prec, label=f"{tool_name} (AUC = {auc_score:.3f})", linewidth=3.5)
             
 
     plt.xlabel("Coverage", fontsize=14)
@@ -136,7 +136,7 @@ def plot_precision_coverage_curves(result_df, tool_name_dict, benchmark_dataset_
     # Save AA plot if save_plot_path is provided
     if save_plot_path is not None:
             aa_plot_path = f"{save_plot_path}/{benchmark_dataset_name}_aminoacid_precision_coverage.png"
-            plt.savefig(aa_plot_path, dpi=300, bbox_inches='tight')
+            plt.savefig(aa_plot_path, dpi=600, bbox_inches='tight')
             print(f"AA plot saved to {aa_plot_path}")
 
     plt.close()  # Close figure to free memory
