@@ -4,7 +4,7 @@
 
 1. Get the Evaluation Datasets (Benchmark MGF files) which are uploaded on Zenodo: https://doi.org/10.5281/zenodo.18213583 and apply your new De Novo Model to get predictions
 
-2. Clone this repo and apply the evaluation to see how your new model performs with respect to current state-of-the-art models on the benchmark datasets
+2. Clone this repo to apply the evaluation to see how your new model performs with respect to current state-of-the-art models on the benchmark datasets
     
     - 2.1. Your predictions need to have a specific format:
 
